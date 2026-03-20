@@ -4,6 +4,9 @@ Runs two loops:
 - Hourly: fetch candle, compute features, run all traders
 - Monitor: check TP/SL every 60 seconds
 
+Resilient: can be stopped and restarted at any time.
+On startup, backfills missing candles and recovers open positions from DB.
+
 Usage:
     python main.py
     python main.py --backfill 500
@@ -11,7 +14,6 @@ Usage:
 import argparse
 import logging
 import signal
-import sys
 import time
 from datetime import datetime, timezone
 
@@ -38,17 +40,46 @@ def handle_signal(sig, frame):
     running = False
 
 
-def backfill(hours: int):
-    """Backfill candles from Binance."""
-    logger.info("Backfilling %d hours of candles...", hours)
-    candles = fetcher.backfill_candles(hours)
-    for c in candles:
+def smart_backfill(max_hours: int = 500):
+    """Backfill candles intelligently.
+
+    - If DB is empty: fetch last max_hours candles
+    - If DB has candles: fetch only the gap since last candle
+    """
+    candles = db.get_candles(limit=1)
+
+    if not candles:
+        logger.info("Empty DB -- backfilling %d hours...", max_hours)
+        new_candles = fetcher.backfill_candles(max_hours)
+    else:
+        last_time = candles[-1]["open_time"]
+        if not last_time.tzinfo:
+            last_time = last_time.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        gap_hours = int((now - last_time).total_seconds() / 3600) + 1
+
+        if gap_hours <= 1:
+            logger.info("Candles up to date (last: %s)", last_time)
+            return 0
+        elif gap_hours > max_hours:
+            gap_hours = max_hours
+
+        logger.info(
+            "Gap detected: last candle %s (%d hours ago). Backfilling...",
+            last_time.strftime("%Y-%m-%d %H:%M"), gap_hours,
+        )
+        new_candles = fetcher.backfill_candles(gap_hours)
+
+    count = 0
+    for c in new_candles:
         db.upsert_candle(
             c["open_time"], c["open"], c["high"],
             c["low"], c["close"], c["volume"],
         )
-    logger.info("Backfilled %d candles", len(candles))
-    return len(candles)
+        count += 1
+
+    logger.info("Backfilled %d candles", count)
+    return count
 
 
 def load_traders() -> dict[int, BaseTrader]:
@@ -67,6 +98,27 @@ def load_traders() -> dict[int, BaseTrader]:
     return traders
 
 
+def recover_state(traders: dict[int, BaseTrader]):
+    """Recover open positions and log state after restart."""
+    for trader in traders.values():
+        open_pos = db.get_open_positions(trader.id)
+        summary = db.get_trades_summary(trader.id)
+        total = int(summary.get("total", 0) or 0)
+        wins = int(summary.get("wins", 0) or 0)
+        wr = f"{wins/total:.0%}" if total > 0 else "N/A"
+
+        logger.info(
+            "[%s] Recovered: %d open positions, %d completed trades (WR=%s)",
+            trader.name, len(open_pos), total, wr,
+        )
+        for pos in open_pos:
+            logger.info(
+                "  Open #%d: entry=$%.2f (conf=%.3f) since %s",
+                pos["id"], float(pos["entry_price"]),
+                float(pos["confidence"]), pos["entry_time"],
+            )
+
+
 def hourly_tick(traders: dict[int, BaseTrader]):
     """Hourly loop: fetch candle -> compute features -> run traders."""
     candle = fetcher.fetch_latest_candle()
@@ -79,9 +131,10 @@ def hourly_tick(traders: dict[int, BaseTrader]):
         candle["low"], candle["close"], candle["volume"],
     )
     logger.info(
-        "Candle %s: O=%.2f H=%.2f L=%.2f C=%.2f",
+        "Candle %s: O=%.2f H=%.2f L=%.2f C=%.2f V=%.0f",
         candle["open_time"].strftime("%Y-%m-%d %H:%M"),
-        candle["open"], candle["high"], candle["low"], candle["close"],
+        candle["open"], candle["high"], candle["low"],
+        candle["close"], candle["volume"],
     )
 
     candles = db.get_candles(limit=500)
@@ -108,30 +161,51 @@ def hourly_tick(traders: dict[int, BaseTrader]):
             logger.error("Trader %s error: %s", trader.name, e, exc_info=True)
 
 
+def print_summary(traders: dict[int, BaseTrader]):
+    """Print periodic summary of all traders."""
+    for trader in traders.values():
+        summary = db.get_trades_summary(trader.id)
+        n_open = len(db.get_open_positions(trader.id))
+        total = int(summary.get("total", 0) or 0)
+        wins = int(summary.get("wins", 0) or 0)
+        wr = f"{wins/total:.0%}" if total > 0 else "N/A"
+        pnl = summary.get("total_pnl_usd", 0) or 0
+        logger.info(
+            "[%s] %d trades, WR=%s, PnL=$%s, open=%d",
+            trader.name, total, wr, pnl, n_open,
+        )
+
+
 def main():
     parser = argparse.ArgumentParser(description="Mock Trader")
     parser.add_argument(
-        "--backfill", type=int, default=500, help="Hours to backfill"
+        "--backfill", type=int, default=500, help="Max hours to backfill"
     )
     args = parser.parse_args()
 
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
 
+    # Init database
     db.init_db()
 
-    n_candles = len(db.get_candles(limit=1))
-    if n_candles == 0:
-        backfill(args.backfill)
+    # Smart backfill (fills gaps or full backfill if empty)
+    smart_backfill(args.backfill)
 
+    # Load traders
     traders = load_traders()
     if not traders:
         logger.warning(
             "No active traders! Register one with register_trader.py"
         )
 
-    logger.info("Starting mock trader with %d traders", len(traders))
+    # Recover state (open positions, trade history)
+    recover_state(traders)
+
+    logger.info("=" * 60)
+    logger.info("Mock Trader started with %d traders", len(traders))
     logger.info("Monitor interval: %ds", config.MONITOR_INTERVAL)
+    logger.info("=" * 60)
 
     last_hour = -1
     tick_count = 0
@@ -147,22 +221,16 @@ def main():
 
             tick_count += 1
             if tick_count % 6 == 0:
-                for trader in traders.values():
-                    summary = db.get_trades_summary(trader.id)
-                    n_open = len(db.get_open_positions(trader.id))
-                    total = int(summary.get("total", 0) or 0)
-                    wins = int(summary.get("wins", 0) or 0)
-                    wr = f"{wins/total:.0%}" if total > 0 else "N/A"
-                    logger.info(
-                        "[%s] %d trades, WR=%s, PnL=$%s, open=%d",
-                        trader.name, total, wr,
-                        summary.get("total_pnl_usd", 0), n_open,
-                    )
+                print_summary(traders)
 
         # Monitor TP/SL every 60 seconds
         check_all_positions(traders)
         time.sleep(config.MONITOR_INTERVAL)
 
+    # Graceful shutdown
+    logger.info("=" * 60)
+    logger.info("Shutting down. Final status:")
+    print_summary(traders)
     logger.info("Goodbye!")
 
 
