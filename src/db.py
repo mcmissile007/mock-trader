@@ -31,7 +31,7 @@ def init_db():
     """Create tables if they don't exist."""
     from pathlib import Path
 
-    schema = (Path(__file__).parent / "schema.sql").read_text()
+    schema = (Path(__file__).parent.parent / "db" / "schema.sql").read_text()
     with get_conn() as conn:
         conn.cursor().execute(schema)
     logger.info("Database initialized")

@@ -16,7 +16,7 @@ Results stored in PostgreSQL for a future web dashboard.
 | 2. Feature compute | `src/features.py` | ✅ Done |
 | 3. Trading logic | `src/trader.py` | ✅ Done |
 | 4. TP/SL monitor | `src/monitor.py` | ✅ Done |
-| 5. DB persistence | `src/db.py` + `src/schema.sql` | ✅ Done |
+| 5. DB persistence | `src/db.py` + `db/schema.sql` | ✅ Done |
 | 6. Resilient startup | `scripts/main.py` | ✅ Done |
 | 7. Web dashboard | (separate project) | ⬚ TODO |
 
@@ -39,13 +39,14 @@ scripts/main.py
 ```
 mock-trader/
 ├── pyproject.toml          # project config, deps, tooling
+├── db/                     # database assets
+│   └── schema.sql
 ├── src/                    # library modules
 │   ├── config.py
 │   ├── db.py
 │   ├── features.py
 │   ├── fetcher.py
 │   ├── monitor.py
-│   ├── schema.sql
 │   └── trader.py
 ├── scripts/                # CLI entry points
 │   ├── main.py
