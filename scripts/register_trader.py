@@ -14,6 +14,12 @@ Usage:
         --type Random \\
         --buy-prob 0.05 \\
         --tp 0.04 --sl -0.04 --max-hold 72
+
+    # Deactivate a trader
+    python register_trader.py --deactivate random_baseline
+
+    # List all traders
+    python register_trader.py --list
 """
 
 import argparse
@@ -24,8 +30,17 @@ import db
 
 def main():
     parser = argparse.ArgumentParser(description="Register a trader")
-    parser.add_argument("--name", required=True, help="Unique trader name")
-    parser.add_argument("--type", required=True, choices=["XGBoost", "Random", "LLM"])
+    parser.add_argument("--name", help="Unique trader name")
+    parser.add_argument(
+        "--type",
+        choices=["XGBoost", "Random", "LLM"],
+    )
+    parser.add_argument("--deactivate", metavar="NAME", help="Deactivate a trader")
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List all traders",
+    )
     parser.add_argument("--model-path", default="", help="Path to model dir")
     parser.add_argument("--tp", type=float, default=0.04)
     parser.add_argument("--sl", type=float, default=-0.04)
@@ -34,6 +49,41 @@ def main():
     parser.add_argument("--amount-usd", type=float, default=10)
     parser.add_argument("--buy-prob", type=float, default=0.05)
     args = parser.parse_args()
+
+    db.init_db()
+
+    # List mode
+    if args.list:
+        traders = db.get_active_traders()
+        if not traders:
+            print("No active traders")
+        for t in traders:
+            s = t["strategy"]
+            print(
+                f"  [{t['id']}] {t['name']} ({t['model_type']})"
+                f" TP={s.get('tp', 0):+.0%}"
+                f" SL={s.get('sl', 0):+.0%}"
+                f" hold={s.get('max_hold', 72)}h"
+            )
+        return
+
+    # Deactivate mode
+    if args.deactivate:
+        with db.get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE traders SET active = false WHERE name = %s",
+                (args.deactivate,),
+            )
+            if cur.rowcount:
+                print(f"Deactivated trader '{args.deactivate}'")
+            else:
+                print(f"Trader '{args.deactivate}' not found")
+        return
+
+    # Register mode — name and type required
+    if not args.name or not args.type:
+        parser.error("--name and --type are required to register")
 
     strategy = {
         "tp": args.tp,
@@ -55,7 +105,6 @@ def main():
                 meta = json.load(f)
             features = meta.get("features", [])
 
-    db.init_db()
     trader_id = db.register_trader(
         name=args.name,
         model_type=args.type,
@@ -65,7 +114,10 @@ def main():
     )
     print(f"Registered trader '{args.name}' (id={trader_id})")
     print(f"   Type: {args.type}")
-    print(f"   Strategy: TP={args.tp:+.0%}, SL={args.sl:+.0%}, hold={args.max_hold}h")
+    tp = args.tp
+    sl = args.sl
+    hold = args.max_hold
+    print(f"   Strategy: TP={tp:+.0%}, SL={sl:+.0%}, hold={hold}h")
     if features:
         print(f"   Features: {len(features)}")
 
