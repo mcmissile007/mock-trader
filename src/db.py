@@ -44,7 +44,7 @@ def init_db():
 def get_active_traders() -> list[dict]:
     logger.debug("Fetching active traders")
     with get_conn() as conn:
-        cur = conn.cursor(psycopg2.extras.RealDictCursor)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute("SELECT * FROM traders WHERE active = true")
         return [dict(r) for r in cur.fetchall()]
 
@@ -94,7 +94,7 @@ def upsert_candle(open_time: datetime, o, h, l, c, v):
 def get_candles(limit: int = 500) -> list[dict]:
     logger.debug("Fetching last %d candles", limit)
     with get_conn() as conn:
-        cur = conn.cursor(psycopg2.extras.RealDictCursor)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
             "SELECT * FROM candles ORDER BY open_time DESC LIMIT %s",
             (limit,),
@@ -140,7 +140,7 @@ def close_position(
     fee_pct: float = 0.001,
 ):
     with get_conn() as conn:
-        cur = conn.cursor(psycopg2.extras.RealDictCursor)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute("SELECT * FROM positions WHERE id = %s", (pos_id,))
         pos = dict(cur.fetchone())
 
@@ -188,7 +188,7 @@ def close_position(
 
 def get_open_positions(trader_id: int = None) -> list[dict]:
     with get_conn() as conn:
-        cur = conn.cursor(psycopg2.extras.RealDictCursor)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         if trader_id:
             cur.execute(
                 "SELECT * FROM positions WHERE status = 'open' AND trader_id = %s",
@@ -201,7 +201,7 @@ def get_open_positions(trader_id: int = None) -> list[dict]:
 
 def get_trades_summary(trader_id: int = None) -> dict:
     with get_conn() as conn:
-        cur = conn.cursor(psycopg2.extras.RealDictCursor)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         where = "WHERE status = 'closed'"
         params = []
         if trader_id:
