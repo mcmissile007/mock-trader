@@ -1,8 +1,9 @@
 """Trader classes -- model loading and signal generation."""
+
 import json
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 import joblib
@@ -34,13 +35,18 @@ class BaseTrader(ABC):
     def predict(self, features_row: pd.DataFrame) -> tuple[str, float]:
         """Return (signal, confidence). Signal in ['BUY', 'SELL', 'HOLD']."""
 
-    def on_new_candle(self, features_df: pd.DataFrame, current_price: float, now: datetime):
+    def on_new_candle(
+        self, features_df: pd.DataFrame, current_price: float, now: datetime
+    ):
         """Called every hour with computed features."""
         signal, confidence = self.predict(features_df)
 
         logger.info(
             "[%s] Signal: %s (conf=%.3f) @ $%.2f",
-            self.name, signal, confidence, current_price,
+            self.name,
+            signal,
+            confidence,
+            current_price,
         )
 
         # SELL -> close all open positions
@@ -48,8 +54,11 @@ class BaseTrader(ABC):
             open_positions = db.get_open_positions(self.id)
             for pos in open_positions:
                 db.close_position(
-                    pos["id"], now, current_price,
-                    reason="sell_signal", fee_pct=config.FEE_PCT,
+                    pos["id"],
+                    now,
+                    current_price,
+                    reason="sell_signal",
+                    fee_pct=config.FEE_PCT,
                 )
 
         # BUY -> open new position if confidence is high enough
@@ -73,19 +82,28 @@ class BaseTrader(ABC):
             if pnl_pct <= self.sl:
                 exit_price = entry_price * (1 + self.sl)
                 db.close_position(
-                    pos["id"], now, exit_price,
-                    reason="sl", fee_pct=config.FEE_PCT,
+                    pos["id"],
+                    now,
+                    exit_price,
+                    reason="sl",
+                    fee_pct=config.FEE_PCT,
                 )
             elif pnl_pct >= self.tp:
                 exit_price = entry_price * (1 + self.tp)
                 db.close_position(
-                    pos["id"], now, exit_price,
-                    reason="tp", fee_pct=config.FEE_PCT,
+                    pos["id"],
+                    now,
+                    exit_price,
+                    reason="tp",
+                    fee_pct=config.FEE_PCT,
                 )
             elif hold_hours >= self.max_hold:
                 db.close_position(
-                    pos["id"], now, current_price,
-                    reason="timeout", fee_pct=config.FEE_PCT,
+                    pos["id"],
+                    now,
+                    current_price,
+                    reason="timeout",
+                    fee_pct=config.FEE_PCT,
                 )
 
 
@@ -106,7 +124,9 @@ class XGBoostTrader(BaseTrader):
             self.features = self.meta["features"]
             logger.info(
                 "[%s] Loaded XGBoost: %d features, test F1=%.4f",
-                self.name, len(self.features), self.meta.get("test_f1_macro", 0),
+                self.name,
+                len(self.features),
+                self.meta.get("test_f1_macro", 0),
             )
         else:
             raise ValueError(f"No model_path for trader {self.name}")

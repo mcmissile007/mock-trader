@@ -8,12 +8,12 @@ Ejecuta las comprobaciones de calidad antes de hacer push.
 
 1. **Lint (Ruff check)**:
    ```bash
-   ruff check *.py
+   cd /home/falken/code/mock-trader && ruff check src/ scripts/ tests/
    ```
 
 2. **Format (Ruff format)**:
    ```bash
-   ruff format --check *.py
+   cd /home/falken/code/mock-trader && ruff format --check src/ scripts/ tests/
    ```
 
 3. **Resultado**:

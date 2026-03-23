@@ -11,18 +11,19 @@ Usage:
     python main.py
     python main.py --backfill 500
 """
+
 import argparse
 import logging
 import signal
 import time
 from datetime import datetime, timezone
 
+import config
 import db
 import fetcher
-import config
-from features_compute import compute_features
+from features import compute_features
 from monitor import check_all_positions
-from trader import create_trader, BaseTrader
+from trader import BaseTrader, create_trader
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,15 +67,20 @@ def smart_backfill(max_hours: int = 500):
 
         logger.info(
             "Gap detected: last candle %s (%d hours ago). Backfilling...",
-            last_time.strftime("%Y-%m-%d %H:%M"), gap_hours,
+            last_time.strftime("%Y-%m-%d %H:%M"),
+            gap_hours,
         )
         new_candles = fetcher.backfill_candles(gap_hours)
 
     count = 0
     for c in new_candles:
         db.upsert_candle(
-            c["open_time"], c["open"], c["high"],
-            c["low"], c["close"], c["volume"],
+            c["open_time"],
+            c["open"],
+            c["high"],
+            c["low"],
+            c["close"],
+            c["volume"],
         )
         count += 1
 
@@ -91,7 +97,9 @@ def load_traders() -> dict[int, BaseTrader]:
             traders[trader.id] = trader
             logger.info(
                 "Loaded trader: %s (id=%d, type=%s)",
-                trader.name, trader.id, trader.model_type,
+                trader.name,
+                trader.id,
+                trader.model_type,
             )
         except Exception as e:
             logger.error("Failed to load trader %s: %s", row["name"], e)
@@ -105,17 +113,22 @@ def recover_state(traders: dict[int, BaseTrader]):
         summary = db.get_trades_summary(trader.id)
         total = int(summary.get("total", 0) or 0)
         wins = int(summary.get("wins", 0) or 0)
-        wr = f"{wins/total:.0%}" if total > 0 else "N/A"
+        wr = f"{wins / total:.0%}" if total > 0 else "N/A"
 
         logger.info(
             "[%s] Recovered: %d open positions, %d completed trades (WR=%s)",
-            trader.name, len(open_pos), total, wr,
+            trader.name,
+            len(open_pos),
+            total,
+            wr,
         )
         for pos in open_pos:
             logger.info(
                 "  Open #%d: entry=$%.2f (conf=%.3f) since %s",
-                pos["id"], float(pos["entry_price"]),
-                float(pos["confidence"]), pos["entry_time"],
+                pos["id"],
+                float(pos["entry_price"]),
+                float(pos["confidence"]),
+                pos["entry_time"],
             )
 
 
@@ -127,14 +140,21 @@ def hourly_tick(traders: dict[int, BaseTrader]):
         return
 
     db.upsert_candle(
-        candle["open_time"], candle["open"], candle["high"],
-        candle["low"], candle["close"], candle["volume"],
+        candle["open_time"],
+        candle["open"],
+        candle["high"],
+        candle["low"],
+        candle["close"],
+        candle["volume"],
     )
     logger.info(
         "Candle %s: O=%.2f H=%.2f L=%.2f C=%.2f V=%.0f",
         candle["open_time"].strftime("%Y-%m-%d %H:%M"),
-        candle["open"], candle["high"], candle["low"],
-        candle["close"], candle["volume"],
+        candle["open"],
+        candle["high"],
+        candle["low"],
+        candle["close"],
+        candle["volume"],
     )
 
     candles = db.get_candles(limit=500)
@@ -145,6 +165,7 @@ def hourly_tick(traders: dict[int, BaseTrader]):
         return
 
     import pandas as pd
+
     df = pd.DataFrame(candles)
 
     fr = fetcher.fetch_funding_rate()
@@ -168,11 +189,15 @@ def print_summary(traders: dict[int, BaseTrader]):
         n_open = len(db.get_open_positions(trader.id))
         total = int(summary.get("total", 0) or 0)
         wins = int(summary.get("wins", 0) or 0)
-        wr = f"{wins/total:.0%}" if total > 0 else "N/A"
+        wr = f"{wins / total:.0%}" if total > 0 else "N/A"
         pnl = summary.get("total_pnl_usd", 0) or 0
         logger.info(
             "[%s] %d trades, WR=%s, PnL=$%s, open=%d",
-            trader.name, total, wr, pnl, n_open,
+            trader.name,
+            total,
+            wr,
+            pnl,
+            n_open,
         )
 
 
@@ -195,9 +220,7 @@ def main():
     # Load traders
     traders = load_traders()
     if not traders:
-        logger.warning(
-            "No active traders! Register one with register_trader.py"
-        )
+        logger.warning("No active traders! Register one with register_trader.py")
 
     # Recover state (open positions, trade history)
     recover_state(traders)

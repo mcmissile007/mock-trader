@@ -1,44 +1,65 @@
 # Mock Trader
 
-Live mock trading system for ML/AI models — simulates BUY/SELL with real-time TP/SL monitoring.
-
-## Features
-- Hourly signal generation (BUY/SELL/HOLD) from trained models
-- Real-time TP/SL monitoring every 60 seconds
-- Multiple concurrent traders (XGBoost, Random, LLM)
-- PostgreSQL storage for web dashboard integration
+Live mock trading system for ML/AI models. Simulates BUY/SELL on BTC/USDT
+with real-time TP/SL monitoring. Multiple traders compete in parallel.
 
 ## Setup
 
 ```bash
-pip install -r requirements.txt
+# 1. Create virtualenv
+python -m venv .venv && source .venv/bin/activate
 
-# Create database
-psql -U postgres -c 'CREATE DATABASE mock_trader;'
-psql -U postgres -d mock_trader -f schema.sql
+# 2. Install in editable mode
+pip install -e .
 
-# Configure
+# 3. Copy and configure environment
 cp .env.example .env
-# Edit .env with your DB credentials
+# Edit .env with your database credentials
 
-# Register traders
-python register_trader.py \
-    --name xgboost_v1 \
-    --type XGBoost \
-    --model-path /path/to/velma/trained_models/label_pct4_hold72/era3_xgb_tuned \
-    --tp 0.04 --sl -0.04 --max-hold 72 --min-confidence 0.80
-
-python register_trader.py \
-    --name random_baseline \
-    --type Random \
-    --buy-prob 0.05
-
-# Run
-python main.py
+# 4. Initialize database
+psql -U postgres -c "CREATE DATABASE mock_trader;"
 ```
 
-## Architecture
+## Usage
 
-- **Hourly loop**: Fetch candle → compute features → run models → open/close positions
-- **Monitor loop** (every 60s): Check open positions for TP/SL via Binance ticker
-- **PostgreSQL**: Stores traders, positions, trades for web dashboard
+```bash
+# Register a random baseline trader
+python scripts/register_trader.py \
+    --name random_baseline --type Random \
+    --buy-prob 0.05 --tp 0.04 --sl -0.04 --max-hold 72
+
+# Register an XGBoost trader (from Velma)
+python scripts/register_trader.py \
+    --name xgboost_v1 --type XGBoost \
+    --model-path /path/to/trained_model \
+    --tp 0.04 --sl -0.04 --max-hold 72 --min-confidence 0.80
+
+# Start trading
+python scripts/main.py
+
+# Check status
+python scripts/status.py
+```
+
+## Development
+
+```bash
+# Lint + format check
+ruff check src/ scripts/ tests/ && ruff format --check src/ scripts/ tests/
+
+# Run tests
+pytest
+
+# Auto-fix formatting
+ruff format src/ scripts/ tests/
+```
+
+## Project Structure
+
+```
+src/          → library modules (config, db, fetcher, features, trader, monitor)
+scripts/      → CLI entry points (main, register_trader, status)
+tests/        → test suite
+```
+
+See [SPEC.md](SPEC.md) for full architecture and design decisions.

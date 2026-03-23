@@ -5,7 +5,7 @@ Usage:
     python register_trader.py \\
         --name xgboost_v1 \\
         --type XGBoost \\
-        --model-path /home/falken/code/velma/trained_models/label_pct4_hold72/era3_xgb_tuned \\
+        --model-path /path/to/trained_model \\
         --tp 0.04 --sl -0.04 --max-hold 72 --min-confidence 0.80
 
     # Random baseline trader
@@ -15,6 +15,7 @@ Usage:
         --buy-prob 0.05 \\
         --tp 0.04 --sl -0.04 --max-hold 72
 """
+
 import argparse
 import json
 
@@ -24,9 +25,7 @@ import db
 def main():
     parser = argparse.ArgumentParser(description="Register a trader")
     parser.add_argument("--name", required=True, help="Unique trader name")
-    parser.add_argument(
-        "--type", required=True, choices=["XGBoost", "Random", "LLM"]
-    )
+    parser.add_argument("--type", required=True, choices=["XGBoost", "Random", "LLM"])
     parser.add_argument("--model-path", default="", help="Path to model dir")
     parser.add_argument("--tp", type=float, default=0.04)
     parser.add_argument("--sl", type=float, default=-0.04)
@@ -49,6 +48,7 @@ def main():
     features = []
     if args.model_path and args.type == "XGBoost":
         from pathlib import Path
+
         meta_path = Path(args.model_path) / "metadata.json"
         if meta_path.exists():
             with open(meta_path) as f:

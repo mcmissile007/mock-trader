@@ -3,6 +3,7 @@
 Usage:
     python status.py
 """
+
 import db
 
 
@@ -14,9 +15,9 @@ def main():
         print("No active traders")
         return
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("  MOCK TRADER STATUS")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     for t in traders:
         summary = db.get_trades_summary(t["id"])
@@ -29,19 +30,24 @@ def main():
         pnl_usd = float(summary.get("total_pnl_usd", 0) or 0)
         avg_pnl = float(summary.get("avg_pnl", 0) or 0)
 
-        print(f"\n  {'_'*50}")
+        print(f"\n  {'_' * 50}")
         print(f"  {t['name']} ({t['model_type']})")
-        print(f"  {'_'*50}")
-        print(f"  Strategy: TP={strategy.get('tp', 0):+.0%} SL={strategy.get('sl', 0):+.0%} hold={strategy.get('max_hold', 72)}h")
+        print(f"  {'_' * 50}")
+        tp = strategy.get("tp", 0)
+        sl = strategy.get("sl", 0)
+        hold = strategy.get("max_hold", 72)
+        print(f"  Strategy: TP={tp:+.0%} SL={sl:+.0%} hold={hold}h")
         print(f"  Trades: {total} (WR={wr:.0%})")
-        print(f"  P&L: ${pnl_usd:+.4f} (avg={avg_pnl*100:+.4f}%)")
+        print(f"  P&L: ${pnl_usd:+.4f} (avg={avg_pnl * 100:+.4f}%)")
         print(f"  Open positions: {len(open_pos)}")
 
         for pos in open_pos:
-            entry = float(pos['entry_price'])
-            print(f"    #{pos['id']}: entry=${entry:.2f} conf={float(pos['confidence']):.3f} since {pos['entry_time']}")
+            entry = float(pos["entry_price"])
+            conf = float(pos["confidence"])
+            since = pos["entry_time"]
+            print(f"    #{pos['id']}: entry=${entry:.2f} conf={conf:.3f} since {since}")
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
 
 
 if __name__ == "__main__":

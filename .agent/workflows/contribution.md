@@ -14,13 +14,12 @@ Sigue estos pasos para cualquier cambio en el código:
 3.  **Actualizar Documentación**:
     - Si se toma una decisión de diseño → añadir entrada `DD-XXX` en `SPEC.md`.
     - Si cambia el estado de una fase → actualizar tabla en `SPEC.md` § Pipeline Status.
-    - Si cambia la estructura → actualizar `.agent/rules/ARCHITECTURE.md`.
 
 4.  **Verificar (Quality Check)**:
     - Ejecuta SIEMPRE antes de commitear.
     // turbo
     ```bash
-    cd /path/to/mock-trader && ruff check *.py && ruff format --check *.py
+    cd /home/falken/code/mock-trader && ruff check src/ scripts/ tests/ && ruff format --check src/ scripts/ tests/
     ```
     - Si fallan, corrige y repite.
 

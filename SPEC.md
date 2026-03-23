@@ -12,26 +12,51 @@ Results stored in PostgreSQL for a future web dashboard.
 
 | Phase | Module | Status |
 |-------|--------|--------|
-| 1. Data fetch | `fetcher.py` | ✅ Done |
-| 2. Feature compute | `features_compute.py` | ✅ Done |
-| 3. Trading logic | `trader.py` | ✅ Done |
-| 4. TP/SL monitor | `monitor.py` | ✅ Done |
-| 5. DB persistence | `db.py` + `schema.sql` | ✅ Done |
-| 6. Resilient startup | `main.py` | ✅ Done |
+| 1. Data fetch | `src/fetcher.py` | ✅ Done |
+| 2. Feature compute | `src/features.py` | ✅ Done |
+| 3. Trading logic | `src/trader.py` | ✅ Done |
+| 4. TP/SL monitor | `src/monitor.py` | ✅ Done |
+| 5. DB persistence | `src/db.py` + `src/schema.sql` | ✅ Done |
+| 6. Resilient startup | `scripts/main.py` | ✅ Done |
 | 7. Web dashboard | (separate project) | ⬚ TODO |
 
 ## Architecture
 
 ```
-main.py
+scripts/main.py
 ├── Hourly loop (every hour at :05)
 │   ├── fetcher.fetch_latest_candle()
 │   ├── db.upsert_candle()
-│   ├── features_compute.compute_features()
+│   ├── features.compute_features()
 │   └── trader.on_new_candle() → BUY / SELL
 └── Monitor loop (every 60s)
     ├── fetcher.fetch_ticker_price()
     └── trader.check_positions() → TP / SL / timeout
+```
+
+## Project Structure
+
+```
+mock-trader/
+├── pyproject.toml          # project config, deps, tooling
+├── src/                    # library modules
+│   ├── config.py
+│   ├── db.py
+│   ├── features.py
+│   ├── fetcher.py
+│   ├── monitor.py
+│   ├── schema.sql
+│   └── trader.py
+├── scripts/                # CLI entry points
+│   ├── main.py
+│   ├── register_trader.py
+│   └── status.py
+├── tests/                  # test suite
+│   ├── conftest.py
+│   └── test_placeholder.py
+├── .env.example
+├── README.md
+└── SPEC.md
 ```
 
 ## Trading Rules
@@ -72,7 +97,8 @@ The system can be stopped and restarted at any time. On startup:
 |----|----------|-----------|
 | DD-001 | Separate repo from Velma | Different concern (live runtime vs research) |
 | DD-002 | PostgreSQL over DuckDB | Multi-trader, future web dashboard, remote access |
-| DD-003 | Self-contained features | No Velma dependency — features_compute.py reimplements core calcs |
+| DD-003 | Self-contained features | No Velma dependency — features.py reimplements core calcs |
 | DD-004 | 60s monitor interval | Balance between responsiveness and API limits |
 | DD-005 | Backfill on startup | Resilience — can recover after hours/days offline |
 | DD-006 | Multiple positions per trader | Allows stacking BUY signals for high-conviction moments |
+| DD-007 | src/ + scripts/ + tests/ layout | Consistent with velma, clean separation of library vs CLI vs tests |

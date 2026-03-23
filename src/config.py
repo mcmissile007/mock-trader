@@ -1,6 +1,8 @@
 """Configuration loaded from .env file."""
+
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,7 +14,10 @@ DB_NAME = os.getenv("DB_NAME", "mock_trader")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 
-DB_DSN = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={DB_PASSWORD}"
+DB_DSN = (
+    f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME}"
+    f" user={DB_USER} password={DB_PASSWORD}"
+)
 
 # Binance
 BINANCE_BASE_URL = os.getenv("BINANCE_BASE_URL", "https://api.binance.com")

@@ -1,4 +1,5 @@
 """Fast monitoring loop -- checks TP/SL every minute."""
+
 import logging
 from datetime import datetime, timezone
 

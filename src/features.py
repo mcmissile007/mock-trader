@@ -3,6 +3,7 @@
 Self-contained feature computation (no Velma dependency).
 Reimplements the core calculations needed by trading models.
 """
+
 import logging
 
 import numpy as np
@@ -14,28 +15,36 @@ logger = logging.getLogger(__name__)
 def _sma(s: pd.Series, n: int) -> pd.Series:
     return s.rolling(n).mean()
 
+
 def _ema(s: pd.Series, n: int) -> pd.Series:
     return s.ewm(span=n, adjust=False).mean()
+
 
 def _rsi(close: pd.Series, period: int = 14) -> pd.Series:
     delta = close.diff()
     gain = delta.where(delta > 0, 0.0)
     loss = -delta.where(delta < 0, 0.0)
-    avg_gain = gain.ewm(alpha=1/period, min_periods=period).mean()
-    avg_loss = loss.ewm(alpha=1/period, min_periods=period).mean()
+    avg_gain = gain.ewm(alpha=1 / period, min_periods=period).mean()
+    avg_loss = loss.ewm(alpha=1 / period, min_periods=period).mean()
     rs = avg_gain / avg_loss.replace(0, np.nan)
     return 100 - (100 / (1 + rs))
 
+
 def _atr(high, low, close, period=14):
-    tr = pd.concat([
-        high - low,
-        (high - close.shift()).abs(),
-        (low - close.shift()).abs(),
-    ], axis=1).max(axis=1)
-    return tr.ewm(alpha=1/period, min_periods=period).mean()
+    tr = pd.concat(
+        [
+            high - low,
+            (high - close.shift()).abs(),
+            (low - close.shift()).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    return tr.ewm(alpha=1 / period, min_periods=period).mean()
+
 
 def _natr(high, low, close, period=14):
     return _atr(high, low, close, period) / close * 100
+
 
 def _mfi(high, low, close, volume, period=14):
     tp = (high + low + close) / 3
@@ -45,6 +54,7 @@ def _mfi(high, low, close, volume, period=14):
     ratio = pos / neg.replace(0, np.nan)
     return 100 - (100 / (1 + ratio))
 
+
 def _bb_width(close, period=20, std_mult=2):
     sma = close.rolling(period).mean()
     std = close.rolling(period).std()
@@ -52,11 +62,13 @@ def _bb_width(close, period=20, std_mult=2):
     lower = sma - std_mult * std
     return (upper - lower) / sma
 
+
 def _stoch(high, low, close, period=14, smooth=3):
     lowest_low = low.rolling(period).min()
     highest_high = high.rolling(period).max()
     k = 100 * (close - lowest_low) / (highest_high - lowest_low).replace(0, np.nan)
     return k.rolling(smooth).mean()
+
 
 def _nmacd(close, fast=12, slow=26, signal=9):
     macd = _ema(close, fast) - _ema(close, slow)
@@ -64,22 +76,28 @@ def _nmacd(close, fast=12, slow=26, signal=9):
     hist = macd - sig
     return macd / close * 100, sig / close * 100, hist / close * 100
 
+
 def _hh_ratio(high, period):
     return high / high.rolling(period).max()
 
+
 def _hl_ratio(low, high, period):
     return low / high.rolling(period).max()
+
 
 def _hh_div(high, rsi, period):
     price_hh = high / high.rolling(period).max()
     rsi_norm = rsi / rsi.rolling(period).max().replace(0, np.nan)
     return price_hh - rsi_norm
 
+
 def _roc(close, period):
     return close.pct_change(period) * 100
 
+
 def _sma_ratio(close, period):
     return close / _sma(close, period)
+
 
 def _ema_ratio(close, period):
     return close / _ema(close, period)
@@ -134,14 +152,16 @@ def _funding_features(funding_rates: list[float]) -> dict:
     }
 
 
-def compute_features(df: pd.DataFrame, funding_rates: list[float] = None) -> pd.DataFrame:
+def compute_features(
+    df: pd.DataFrame, funding_rates: list[float] = None
+) -> pd.DataFrame:
     """Compute all features from OHLCV candle DataFrame.
 
     Returns DataFrame with feature columns appended.
     Expects df sorted by open_time ascending with columns:
     open_time, open, high, low, close, volume
     """
-    o, h, l, c, v = df["open"], df["high"], df["low"], df["close"], df["volume"]
+    _o, h, l, c, v = df["open"], df["high"], df["low"], df["close"], df["volume"]
 
     # 1h features
     rsi = _rsi(c, 14)
@@ -170,9 +190,20 @@ def compute_features(df: pd.DataFrame, funding_rates: list[float] = None) -> pd.
     # 4h features (resample)
     df_ts = df.copy()
     df_ts["open_time"] = pd.to_datetime(df_ts["open_time"], utc=True)
-    df4h = df_ts.set_index("open_time").resample("4h").agg(
-        {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}
-    ).dropna()
+    df4h = (
+        df_ts.set_index("open_time")
+        .resample("4h")
+        .agg(
+            {
+                "open": "first",
+                "high": "max",
+                "low": "min",
+                "close": "last",
+                "volume": "sum",
+            }
+        )
+        .dropna()
+    )
 
     if len(df4h) > 50:
         h4, l4, c4, v4 = df4h["high"], df4h["low"], df4h["close"], df4h["volume"]
