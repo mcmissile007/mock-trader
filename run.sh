@@ -6,18 +6,23 @@ cd "$ROOT_DIR"
 
 # ── 1. Check PostgreSQL ──────────────────────────────────────
 echo "🔍 Checking PostgreSQL..."
-if ! docker compose -f db/docker-compose.yaml ps --status running 2>/dev/null | grep -q postgres; then
+if pg_isready -h localhost -p 15432 -q 2>/dev/null; then
+    echo "✅ PostgreSQL is running"
+else
     echo "🐘 Starting PostgreSQL..."
     docker compose -f db/docker-compose.yaml up -d
     echo "⏳ Waiting for PostgreSQL to be ready..."
-    for i in $(seq 1 15); do
-        if docker compose -f db/docker-compose.yaml exec -T postgres pg_isready -q 2>/dev/null; then
+    for i in $(seq 1 20); do
+        if pg_isready -h localhost -p 15432 -q 2>/dev/null; then
+            echo "✅ PostgreSQL is ready"
             break
+        fi
+        if [ "$i" -eq 20 ]; then
+            echo "❌ PostgreSQL failed to start after 20s"
+            exit 1
         fi
         sleep 1
     done
-else
-    echo "✅ PostgreSQL is running"
 fi
 
 # ── 2. Check virtualenv ──────────────────────────────────────
