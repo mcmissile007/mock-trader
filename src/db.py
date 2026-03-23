@@ -99,7 +99,13 @@ def get_candles(limit: int = 500) -> list[dict]:
             "SELECT * FROM candles ORDER BY open_time DESC LIMIT %s",
             (limit,),
         )
-        return [dict(r) for r in cur.fetchall()][::-1]  # oldest first
+        rows = [dict(r) for r in cur.fetchall()][::-1]  # oldest first
+    # Convert Decimal → float for pandas compatibility
+    for row in rows:
+        for k in ("open", "high", "low", "close", "volume"):
+            if k in row and row[k] is not None:
+                row[k] = float(row[k])
+    return rows
 
 
 # --- Positions ---
