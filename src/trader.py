@@ -142,12 +142,25 @@ class XGBoostTrader(BaseTrader):
 
     def predict(self, features_df: pd.DataFrame) -> tuple[str, float]:
         available = [f for f in self.features if f in features_df.columns]
+        logger.debug(
+            "[%s] Predicting with %d/%d features",
+            self.name,
+            len(available),
+            len(self.features),
+        )
         X = features_df[available].iloc[[-1]]  # last row
         pred = self.model.predict(X)[0]
         proba = self.model.predict_proba(X)[0]
         signal_code = self.INV_MAP[pred]
         signal = self.SIGNAL_NAMES[signal_code]
         confidence = float(proba.max())
+        logger.debug(
+            "[%s] Prediction: %s (conf=%.4f, proba=%s)",
+            self.name,
+            signal,
+            confidence,
+            [f"{p:.4f}" for p in proba],
+        )
         return signal, confidence
 
 
@@ -160,8 +173,16 @@ class RandomTrader(BaseTrader):
         self.rng = np.random.RandomState(42)
 
     def predict(self, features_df: pd.DataFrame) -> tuple[str, float]:
-        if self.rng.random() < self.buy_probability:
+        roll = self.rng.random()
+        if roll < self.buy_probability:
+            logger.debug(
+                "[%s] Random roll=%.4f < %.2f → BUY",
+                self.name,
+                roll,
+                self.buy_probability,
+            )
             return "BUY", 1.0
+        logger.debug("[%s] Random roll=%.4f → HOLD", self.name, roll)
         return "HOLD", 1.0
 
 
