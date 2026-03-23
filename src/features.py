@@ -91,6 +91,19 @@ def _hh_div(high, rsi, period):
     return price_hh - rsi_norm
 
 
+def _hl_div(low, rsi, period):
+    price_hl = low / low.rolling(period).min().replace(0, np.nan)
+    rsi_norm = rsi / rsi.rolling(period).min().replace(0, np.nan)
+    return price_hl - rsi_norm
+
+
+def _mfi_div(high, low, close, volume, rsi, period):
+    mfi = _mfi(high, low, close, volume, 14)
+    mfi_norm = mfi / mfi.rolling(period).max().replace(0, np.nan)
+    rsi_norm = rsi / rsi.rolling(period).max().replace(0, np.nan)
+    return mfi_norm - rsi_norm
+
+
 def _roc(close, period):
     return close.pct_change(period) * 100
 
@@ -216,6 +229,7 @@ def compute_features(
         feat4h["tf4h_natr_14"] = _natr(h4, l4, c4, 14)
         feat4h["tf4h_mfi_14"] = _mfi(h4, l4, c4, v4, 14)
         feat4h["tf4h_bb_width_20"] = _bb_width(c4, 20)
+        feat4h["tf4h_nmacd"] = nmacd4
         feat4h["tf4h_nmacd_signal"] = nmacd_sig4
         feat4h["tf4h_nmacd_hist"] = nmacd_hist4
         feat4h["tf4h_stoch_d_14"] = _stoch(h4, l4, c4, 14)
@@ -229,6 +243,8 @@ def compute_features(
             feat4h[f"tf4h_hh_ratio_{p}"] = _hh_ratio(h4, p)
             feat4h[f"tf4h_hl_ratio_{p}"] = _hl_ratio(l4, h4, p)
             feat4h[f"tf4h_hh_div_{p}"] = _hh_div(h4, rsi4, p)
+            feat4h[f"tf4h_hl_div_{p}"] = _hl_div(l4, rsi4, p)
+            feat4h[f"tf4h_mfi_div_{p}"] = _mfi_div(h4, l4, c4, v4, rsi4, p)
 
         # Merge 4h -> 1h (forward fill)
         feat4h_1h = feat4h.reindex(
