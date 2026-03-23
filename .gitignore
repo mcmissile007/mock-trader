@@ -6,4 +6,5 @@ dist/
 build/
 .venv/
 data/models/**/*.joblib
+logs/
 .ruff_cache/

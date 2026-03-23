@@ -30,3 +30,7 @@ FEE_PCT = float(os.getenv("FEE_PCT", "0.001"))
 
 # Paths
 MODELS_DIR = Path(os.getenv("MODELS_DIR", "data/models"))
+
+# Logging
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_DIR = os.getenv("LOG_DIR", "logs")

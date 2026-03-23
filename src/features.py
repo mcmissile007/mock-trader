@@ -164,6 +164,7 @@ def compute_features(
     _o, h, l, c, v = df["open"], df["high"], df["low"], df["close"], df["volume"]
 
     # 1h features
+    logger.debug("Computing 1h features (%d rows)", len(df))
     rsi = _rsi(c, 14)
     nmacd, nmacd_sig, nmacd_hist = _nmacd(c)
 
@@ -206,6 +207,7 @@ def compute_features(
     )
 
     if len(df4h) > 50:
+        logger.debug("Computing 4h features (%d bars)", len(df4h))
         h4, l4, c4, v4 = df4h["high"], df4h["low"], df4h["close"], df4h["volume"]
         rsi4 = _rsi(c4, 14)
         nmacd4, nmacd_sig4, nmacd_hist4 = _nmacd(c4)

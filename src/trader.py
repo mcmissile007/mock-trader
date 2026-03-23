@@ -78,6 +78,13 @@ class BaseTrader(ABC):
             entry_price = float(pos["entry_price"])
             pnl_pct = (current_price - entry_price) / entry_price
             hold_hours = (now - pos["entry_time"]).total_seconds() / 3600
+            logger.debug(
+                "[%s] Position #%d: pnl=%.4f%%, hold=%.1fh",
+                self.name,
+                pos["id"],
+                pnl_pct * 100,
+                hold_hours,
+            )
 
             if pnl_pct <= self.sl:
                 exit_price = entry_price * (1 + self.sl)

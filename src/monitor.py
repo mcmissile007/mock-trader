@@ -18,6 +18,11 @@ def check_all_positions(traders: dict[int, BaseTrader]):
 
     now = datetime.now(timezone.utc)
     open_positions = db.get_open_positions()
+    logger.debug(
+        "Monitor: price=$%.2f, %d open positions",
+        price,
+        len(open_positions),
+    )
 
     if not open_positions:
         return

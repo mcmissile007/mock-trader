@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def get_conn():
     """Get a database connection."""
+    logger.debug("Opening DB connection")
     conn = psycopg2.connect(config.DB_DSN)
     try:
         yield conn
@@ -41,6 +42,7 @@ def init_db():
 
 
 def get_active_traders() -> list[dict]:
+    logger.debug("Fetching active traders")
     with get_conn() as conn:
         cur = conn.cursor(psycopg2.extras.RealDictCursor)
         cur.execute("SELECT * FROM traders WHERE active = true")
@@ -90,6 +92,7 @@ def upsert_candle(open_time: datetime, o, h, l, c, v):
 
 
 def get_candles(limit: int = 500) -> list[dict]:
+    logger.debug("Fetching last %d candles", limit)
     with get_conn() as conn:
         cur = conn.cursor(psycopg2.extras.RealDictCursor)
         cur.execute(

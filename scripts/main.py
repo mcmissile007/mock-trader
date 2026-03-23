@@ -22,14 +22,10 @@ import config
 import db
 import fetcher
 from features import compute_features
+from logging_config import setup_logging
 from monitor import check_all_positions
 from trader import BaseTrader, create_trader
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 running = True
@@ -47,6 +43,7 @@ def smart_backfill(max_hours: int = 500):
     - If DB is empty: fetch last max_hours candles
     - If DB has candles: fetch only the gap since last candle
     """
+    logger.debug("smart_backfill: checking gap, max_hours=%d", max_hours)
     candles = db.get_candles(limit=1)
 
     if not candles:
@@ -83,6 +80,7 @@ def smart_backfill(max_hours: int = 500):
             c["volume"],
         )
         count += 1
+        logger.debug("Upserted candle: %s", c["open_time"])
 
     logger.info("Backfilled %d candles", count)
     return count
@@ -167,11 +165,14 @@ def hourly_tick(traders: dict[int, BaseTrader]):
     import pandas as pd
 
     df = pd.DataFrame(candles)
+    logger.debug("Computing features from %d candles", len(candles))
 
     fr = fetcher.fetch_funding_rate()
     funding_rates = [fr] if fr is not None else None
+    logger.debug("Funding rate: %s", fr)
 
     features_df = compute_features(df, funding_rates)
+    logger.debug("Features shape: %s", features_df.shape)
     now = datetime.now(timezone.utc)
     current_price = candle["close"]
 
@@ -208,6 +209,9 @@ def main():
     )
     args = parser.parse_args()
 
+    # Init logging first
+    setup_logging()
+
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
 
@@ -230,6 +234,7 @@ def main():
     logger.info("Monitor interval: %ds", config.MONITOR_INTERVAL)
     logger.info("=" * 60)
 
+    logger.debug("Entering main loop")
     last_hour = -1
     tick_count = 0
 
@@ -247,6 +252,7 @@ def main():
                 print_summary(traders)
 
         # Monitor TP/SL every 60 seconds
+        logger.debug("Monitor tick at %s", now.strftime("%H:%M:%S"))
         check_all_positions(traders)
         time.sleep(config.MONITOR_INTERVAL)
 

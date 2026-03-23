@@ -14,6 +14,7 @@ def fetch_latest_candle() -> dict | None:
     """Fetch the last closed 1h candle from Binance."""
     url = f"{config.BINANCE_BASE_URL}/api/v3/klines"
     params = {"symbol": config.SYMBOL, "interval": "1h", "limit": 2}
+    logger.debug("Fetching latest candle: %s", params)
 
     try:
         r = requests.get(url, params=params, timeout=10)
@@ -70,6 +71,7 @@ def backfill_candles(hours: int = 500) -> list[dict]:
     """Fetch last N hours of candles for initial feature computation."""
     url = f"{config.BINANCE_BASE_URL}/api/v3/klines"
     params = {"symbol": config.SYMBOL, "interval": "1h", "limit": hours}
+    logger.debug("Backfilling %d hours of candles", hours)
 
     try:
         r = requests.get(url, params=params, timeout=30)
