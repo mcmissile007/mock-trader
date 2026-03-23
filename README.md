@@ -14,10 +14,9 @@ pip install -e .
 
 # 3. Copy and configure environment
 cp .env.example .env
-# Edit .env with your database credentials
 
-# 4. Initialize database
-psql -U postgres -c "CREATE DATABASE mock_trader;"
+# 4. Start PostgreSQL (port 15432)
+cd db && docker compose up -d && cd ..
 ```
 
 ## Usage
