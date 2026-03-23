@@ -28,10 +28,10 @@ python scripts/register_trader.py \
     --name random_baseline --type Random \
     --buy-prob 0.05 --tp 0.04 --sl -0.04 --max-hold 72
 
-# Register an XGBoost trader (from Velma)
+# Register an XGBoost trader (model in data/models/)
 python scripts/register_trader.py \
     --name xgboost_v1 --type XGBoost \
-    --model-path /path/to/trained_model \
+    --model-path data/models/xgboost_v1 \
     --tp 0.04 --sl -0.04 --max-hold 72 --min-confidence 0.80
 
 # Start trading

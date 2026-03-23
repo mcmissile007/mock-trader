@@ -1,0 +1,108 @@
+{
+  "label": "label_pct4_hold72",
+  "era": "era3",
+  "model_type": "XGBClassifier",
+  "n_trials": 100,
+  "best_val_f1": 0.4534,
+  "best_params": {
+    "n_estimators": 667,
+    "max_depth": 8,
+    "learning_rate": 0.10504503879258395,
+    "subsample": 0.9325431195758112,
+    "colsample_bytree": 0.32306475237674087,
+    "min_child_weight": 18,
+    "gamma": 1.8983618177169892,
+    "reg_alpha": 0.011485119742593357,
+    "reg_lambda": 0.4729317124460795,
+    "scale_pos_weight": 2.5376486301150982
+  },
+  "features": [
+    "tf4h_sma_ratio_100",
+    "funding_rate_streak",
+    "funding_rate_cumsum_7d",
+    "tf4h_hh_ratio_21",
+    "tf4h_ema_ratio_200",
+    "tf4h_hl_ratio_21",
+    "tf4h_hh_div_21",
+    "tf4h_nmacd_signal",
+    "funding_rate_sma_8",
+    "tf4h_natr_14",
+    "tf4h_hh_ratio_14",
+    "tf4h_sma_ratio_200",
+    "natr_14",
+    "tf4h_bb_width_20",
+    "tf4h_mfi_14",
+    "tf4h_hl_ratio_14",
+    "tf4h_ema_ratio_100",
+    "funding_rate_zscore_30",
+    "tf4h_nmacd_hist",
+    "tf4h_ema_ratio_50",
+    "funding_rate",
+    "sma_ratio_200",
+    "ema_ratio_200",
+    "tf4h_roc_21",
+    "tf4h_nmacd",
+    "tf4h_hl_div_21",
+    "tf4h_sma_ratio_50",
+    "tf4h_hh_div_14",
+    "tf4h_mfi_div_21",
+    "tf4h_hh_ratio_7"
+  ],
+  "n_features": 30,
+  "label_map": {
+    "-1": 0,
+    "0": 1,
+    "1": 2
+  },
+  "inv_map": {
+    "0": -1,
+    "1": 0,
+    "2": 1
+  },
+  "class_names": [
+    "SELL",
+    "HOLD",
+    "BUY"
+  ],
+  "test_f1_macro": 0.3989,
+  "test_accuracy": 0.4053,
+  "buy_precision": 0.3309,
+  "buy_recall": 0.4988,
+  "sell_precision": 0.4896,
+  "sell_recall": 0.2323,
+  "hold_precision": 0.4338,
+  "hold_recall": 0.5466,
+  "report": {
+    "SELL": {
+      "precision": 0.4895666131621188,
+      "recall": 0.2322924600152323,
+      "f1-score": 0.31508264462809915,
+      "support": 1313.0
+    },
+    "HOLD": {
+      "precision": 0.43375277572168763,
+      "recall": 0.5466417910447762,
+      "f1-score": 0.48369789517127526,
+      "support": 1072.0
+    },
+    "BUY": {
+      "precision": 0.3308763308763309,
+      "recall": 0.49876543209876545,
+      "f1-score": 0.39783357951747905,
+      "support": 810.0
+    },
+    "accuracy": 0.405320813771518,
+    "macro avg": {
+      "precision": 0.4180652399200458,
+      "recall": 0.42589989438625797,
+      "f1-score": 0.39887137310561777,
+      "support": 3195.0
+    },
+    "weighted avg": {
+      "precision": 0.43060837767303256,
+      "recall": 0.405320813771518,
+      "f1-score": 0.3926362614802689,
+      "support": 3195.0
+    }
+  }
+}

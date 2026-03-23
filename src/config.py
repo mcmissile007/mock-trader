@@ -29,4 +29,4 @@ MONITOR_INTERVAL = int(os.getenv("MONITOR_INTERVAL_SECONDS", "60"))
 FEE_PCT = float(os.getenv("FEE_PCT", "0.001"))
 
 # Paths
-MODELS_DIR = Path(os.getenv("MODELS_DIR", "models"))
+MODELS_DIR = Path(os.getenv("MODELS_DIR", "data/models"))

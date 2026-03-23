@@ -39,7 +39,10 @@ scripts/main.py
 ```
 mock-trader/
 ├── pyproject.toml          # project config, deps, tooling
-├── db/                     # database assets
+├── data/                     # data assets
+│   └── models/               # trained model binaries
+│       └── xgboost_v1/
+├── db/                       # database assets
 │   └── schema.sql
 ├── src/                    # library modules
 │   ├── config.py
