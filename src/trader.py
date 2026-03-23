@@ -118,6 +118,8 @@ class XGBoostTrader(BaseTrader):
         model_path = trader_row.get("model_path", "")
         if model_path:
             model_dir = Path(model_path)
+            if not model_dir.is_absolute():
+                model_dir = config.MODELS_DIR / model_dir
             self.model = joblib.load(model_dir / "model.joblib")
             with open(model_dir / "metadata.json") as f:
                 self.meta = json.load(f)
