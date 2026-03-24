@@ -1,0 +1,59 @@
+# Mock Trader — Full stack deployment
+# Usage: docker compose up -d
+#
+# Copy .env.example → .env and adjust before starting.
+
+services:
+  # ── PostgreSQL 17 ────────────────────────────────────────
+  postgres:
+    image: postgres:17
+    container_name: mock_trader_db
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT_HOST:-15432}:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-mock_trader}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-mock_trader}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - mock_trader_net
+
+  # ── Mock Trader App ──────────────────────────────────────
+  trader:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: mock_trader_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override DB_HOST to point to the postgres service inside Docker network
+      DB_HOST: postgres
+      DB_PORT: 5432
+    volumes:
+      # Mount model files from host (place your .joblib models here)
+      - ../data/models:/app/data/models:ro
+      # Persist logs on host
+      - trader_logs:/app/logs
+    networks:
+      - mock_trader_net
+
+volumes:
+  pgdata:
+  trader_logs:
+
+networks:
+  mock_trader_net:
+    driver: bridge
