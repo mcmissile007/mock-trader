@@ -1,0 +1,8 @@
+# Listar traders activos
+PYTHONPATH=src .venv/bin/python scripts/register_trader.py --list
+
+# Desactivar un trader
+PYTHONPATH=src .venv/bin/python scripts/register_trader.py --deactivate random_baseline
+
+# Registrar uno nuevo
+PYTHONPATH=src .venv/bin/python scripts/register_trader.py --name xgboost_v1 --type XGBoost --model-path xgboost_v1
